@@ -47,7 +47,7 @@ public class ObjLoader extends AbstractObjLoader implements ModelResourceProvide
         if (!Namespaces.check(modelIdentifier.getNamespace()))
             return null;
 
-        Identifier resource = new Identifier(
+        Identifier resource = Identifier.of(
                 modelIdentifier.getNamespace(),
                 "models/item/" + modelIdentifier.getPath () + ".json");
 
@@ -63,7 +63,7 @@ public class ObjLoader extends AbstractObjLoader implements ModelResourceProvide
                 return null;
             }
 
-            Identifier modelPath = new Identifier(model.getAsString());
+            Identifier modelPath = Identifier.of(model.getAsString());
             ModelTransformation transformation = this.getTransformation(rawModel);
 
             boolean isSideLit = true;
@@ -84,8 +84,8 @@ public class ObjLoader extends AbstractObjLoader implements ModelResourceProvide
             JsonObject rawTransform = JsonHelper.getObject(rawModel, "display");
             return GSON.fromJson(rawTransform, ModelTransformation.class);
         } else if (rawModel.has("parent")) {
-            Identifier parent = new Identifier(JsonHelper.getString(rawModel, "parent"));
-            parent = new Identifier(parent.getNamespace(), "models/" + parent.getPath() + ".json");
+            Identifier parent = Identifier.of(JsonHelper.getString(rawModel, "parent"));
+            parent = Identifier.of(parent.getNamespace(), "models/" + parent.getPath() + ".json");
             return this.getTransformation(parent);
         } else {
             return ModelTransformation.NONE;

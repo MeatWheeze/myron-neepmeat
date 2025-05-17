@@ -74,9 +74,9 @@ public class Myron implements ClientModInitializer {
 
                 if (id.getPath().endsWith(".obj")) {
                     ids.add(id);
-                    ids.add(new Identifier(id.getNamespace(), id.getPath().substring(0, id.getPath().indexOf(".obj"))));
+                    ids.add(Identifier.of(id.getNamespace(), id.getPath().substring(0, id.getPath().indexOf(".obj"))));
                 } else {
-                    Identifier test = new Identifier(id.getNamespace(), id.getPath() + ".obj");
+                    Identifier test = Identifier.of(id.getNamespace(), id.getPath() + ".obj");
 
                     if (manager.getResource(test).isPresent()) {
                         ids.add(id);
@@ -89,7 +89,7 @@ public class Myron implements ClientModInitializer {
                     String path = id.getPath();
 
                     if (path.startsWith("models/")) {
-                        out.accept(new Identifier(id.getNamespace(), path.substring("models/".length())));
+                        out.accept(Identifier.of(id.getNamespace(), path.substring("models/".length())));
                     }
 
                     out.accept(id);
@@ -104,11 +104,11 @@ public class Myron implements ClientModInitializer {
         ResourceManager resourceManager = MinecraftClient.getInstance().getResourceManager();
 
         if (!modelPath.getPath().endsWith(".obj")) {
-            modelPath = new Identifier(modelPath.getNamespace(), modelPath.getPath() + ".obj");
+            modelPath = Identifier.of(modelPath.getNamespace(), modelPath.getPath() + ".obj");
         }
 
         if (!modelPath.getPath().startsWith("models/")) {
-            modelPath = new Identifier(modelPath.getNamespace(), "models/" + modelPath.getPath());
+            modelPath = Identifier.of(modelPath.getNamespace(), "models/" + modelPath.getPath());
         }
 
         if (resourceManager.getResource(modelPath).isPresent()) {
@@ -132,7 +132,7 @@ public class Myron implements ClientModInitializer {
         for (String s : obj.getMtlFileNames()) {
             String path = identifier.getPath();
             path = path.substring(0, path.lastIndexOf('/') + 1) + s;
-            Identifier resource = new Identifier(identifier.getNamespace(), path);
+            Identifier resource = Identifier.of(identifier.getNamespace(), path);
 
             if (resourceManager.getResource(resource).isPresent()) {
                 MaterialReader.read(new BufferedReader(

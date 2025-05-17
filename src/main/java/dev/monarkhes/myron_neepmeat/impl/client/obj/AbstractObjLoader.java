@@ -28,11 +28,11 @@ public class AbstractObjLoader {
         boolean isBlock = identifier.getPath().startsWith("block");
 
         if (!identifier.getPath().endsWith(".obj")) {
-            identifier = new Identifier(identifier.getNamespace(), identifier.getPath() + ".obj");
+            identifier = Identifier.of(identifier.getNamespace(), identifier.getPath() + ".obj");
         }
 
         if (!identifier.getPath().startsWith("models/")) {
-            identifier = new Identifier(identifier.getNamespace(), "models/" + identifier.getPath());
+            identifier = Identifier.of(identifier.getNamespace(), "models/" + identifier.getPath());
         }
 
         if (resourceManager.getResource(identifier).isPresent()) {
