@@ -3,12 +3,14 @@ package dev.monarkhes.myron_neepmeat.impl.client;
 import de.javagl.obj.*;
 import dev.monarkhes.myron_neepmeat.impl.Namespaces;
 import dev.monarkhes.myron_neepmeat.impl.client.model.MyronMaterial;
+import dev.monarkhes.myron_neepmeat.impl.client.obj.AbstractObjLoader;
 import dev.monarkhes.myron_neepmeat.impl.client.obj.MaterialReader;
 import dev.monarkhes.myron_neepmeat.impl.client.obj.ObjLoader;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.model.ModelLoadingRegistry;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.mesh.Mesh;
@@ -58,7 +60,8 @@ public class Myron implements ClientModInitializer {
         // For testing
 //        Namespaces.register("minecraft");
 
-        ModelLoadingRegistry.INSTANCE.registerResourceProvider(ObjLoader::new);
+//        ModelLoadingRegistry.INSTANCE.registerResourceProvider(ObjLoader::new);
+        ModelLoadingPlugin.register(ObjLoader.INSTANCE);
         ModelLoadingRegistry.INSTANCE.registerVariantProvider(ObjLoader::new);
         ModelLoadingRegistry.INSTANCE.registerModelProvider((manager, out) -> {
             Collection<Identifier> ids = new HashSet<>();
@@ -116,7 +119,7 @@ public class Myron implements ClientModInitializer {
                 InputStream inputStream = resourceManager.getResource(modelPath).get().getInputStream();
                 Obj obj = ObjReader.read(inputStream);
 
-                Map<String, MyronMaterial> materials = getMaterials(resourceManager, modelPath, obj);
+                Map<String, MyronMaterial> materials = getMaterials(resourceManager::getResource, modelPath, obj);
                 return build(obj, materials, textureGetter, bakeSettings, isBlock);
             } catch (IOException e) {
                 Myron.LOGGER.warn("Failed to load model {}:\n{}", modelPath, e.getMessage());
@@ -126,7 +129,7 @@ public class Myron implements ClientModInitializer {
         return null;
     }
 
-    public static Map<String, MyronMaterial> getMaterials(ResourceManager resourceManager, Identifier identifier, Obj obj) throws IOException {
+    public static Map<String, MyronMaterial> getMaterials(AbstractObjLoader.ResourceGetter resourceManager, Identifier identifier, Obj obj) throws IOException {
         Map<String, MyronMaterial> materials = new LinkedHashMap<>();
 
         for (String s : obj.getMtlFileNames()) {
