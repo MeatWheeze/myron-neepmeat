@@ -9,7 +9,7 @@ import net.minecraft.client.render.model.UnbakedModel;
 import net.minecraft.client.render.model.json.ModelTransformation;
 import net.minecraft.client.texture.MissingSprite;
 import net.minecraft.client.util.SpriteIdentifier;
-import net.minecraft.resource.ResourceManager;
+import net.minecraft.resource.Resource;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
@@ -19,12 +19,18 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 
 public class AbstractObjLoader {
     public static final SpriteIdentifier DEFAULT_SPRITE = new SpriteIdentifier(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE, null);
 
+    public interface ResourceGetter
+    {
+        Optional<Resource> getResource(Identifier id);
+    }
+
     protected @Nullable UnbakedModel loadModel(
-            ResourceManager resourceManager, Identifier identifier, ModelTransformation transformation, boolean isSideLit) {
+            ResourceGetter resourceManager, Identifier identifier, ModelTransformation transformation, boolean isSideLit) {
         boolean isBlock = identifier.getPath().startsWith("block");
 
         if (!identifier.getPath().endsWith(".obj")) {
@@ -61,7 +67,7 @@ public class AbstractObjLoader {
                 MyronMaterial material = materials.get("sprite");
                 return new MyronUnbakedModel(
                         obj, materials,
-                        textureDependencies, materials.size() > 0
+                        textureDependencies, !materials.isEmpty()
                         ? new SpriteIdentifier(PlayerScreenHandler.BLOCK_ATLAS_TEXTURE, (material == null
                         ? materials.values().iterator().next()
                         : material).getTexture())

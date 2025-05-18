@@ -1,14 +1,15 @@
 package dev.monarkhes.myron_neepmeat.impl.client;
 
 import de.javagl.obj.*;
-import dev.monarkhes.myron_neepmeat.impl.Namespaces;
 import dev.monarkhes.myron_neepmeat.impl.client.model.MyronMaterial;
+import dev.monarkhes.myron_neepmeat.impl.client.model.MyronModelProvider;
+import dev.monarkhes.myron_neepmeat.impl.client.obj.AbstractObjLoader;
 import dev.monarkhes.myron_neepmeat.impl.client.obj.MaterialReader;
 import dev.monarkhes.myron_neepmeat.impl.client.obj.ObjLoader;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.model.ModelLoadingRegistry;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.mesh.Mesh;
@@ -33,7 +34,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Environment(EnvType.CLIENT)
@@ -58,44 +61,8 @@ public class Myron implements ClientModInitializer {
         // For testing
 //        Namespaces.register("minecraft");
 
-        ModelLoadingRegistry.INSTANCE.registerResourceProvider(ObjLoader::new);
-        ModelLoadingRegistry.INSTANCE.registerVariantProvider(ObjLoader::new);
-        ModelLoadingRegistry.INSTANCE.registerModelProvider((manager, out) -> {
-            Collection<Identifier> ids = new HashSet<>();
-
-            Collection<Identifier> candidates = new ArrayList<>();
-            candidates.addAll(manager.findResources("models/block", path -> true).keySet());
-            candidates.addAll(manager.findResources("models/item", path -> true).keySet());
-            candidates.addAll(manager.findResources("models/misc", path -> true).keySet());
-
-            for (Identifier id : candidates) {
-                if (!Namespaces.check(id.getNamespace()))
-                    continue;
-
-                if (id.getPath().endsWith(".obj")) {
-                    ids.add(id);
-                    ids.add(Identifier.of(id.getNamespace(), id.getPath().substring(0, id.getPath().indexOf(".obj"))));
-                } else {
-                    Identifier test = Identifier.of(id.getNamespace(), id.getPath() + ".obj");
-
-                    if (manager.getResource(test).isPresent()) {
-                        ids.add(id);
-                    }
-                }
-            }
-
-            ids.forEach(
-                id -> {
-                    String path = id.getPath();
-
-                    if (path.startsWith("models/")) {
-                        out.accept(Identifier.of(id.getNamespace(), path.substring("models/".length())));
-                    }
-
-                    out.accept(id);
-                }
-            );
-        });
+        ModelLoadingPlugin.register(ObjLoader.INSTANCE);
+        ModelLoadingPlugin.register(MyronModelProvider.INSTANCE);
 
         LOGGER.info("Myron Initialized!");
     }
@@ -116,7 +83,7 @@ public class Myron implements ClientModInitializer {
                 InputStream inputStream = resourceManager.getResource(modelPath).get().getInputStream();
                 Obj obj = ObjReader.read(inputStream);
 
-                Map<String, MyronMaterial> materials = getMaterials(resourceManager, modelPath, obj);
+                Map<String, MyronMaterial> materials = getMaterials(resourceManager::getResource, modelPath, obj);
                 return build(obj, materials, textureGetter, bakeSettings, isBlock);
             } catch (IOException e) {
                 Myron.LOGGER.warn("Failed to load model {}:\n{}", modelPath, e.getMessage());
@@ -126,7 +93,7 @@ public class Myron implements ClientModInitializer {
         return null;
     }
 
-    public static Map<String, MyronMaterial> getMaterials(ResourceManager resourceManager, Identifier identifier, Obj obj) throws IOException {
+    public static Map<String, MyronMaterial> getMaterials(AbstractObjLoader.ResourceGetter resourceManager, Identifier identifier, Obj obj) throws IOException {
         Map<String, MyronMaterial> materials = new LinkedHashMap<>();
 
         for (String s : obj.getMtlFileNames()) {
