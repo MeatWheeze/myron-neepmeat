@@ -3,6 +3,7 @@ package dev.monarkhes.myron_neepmeat.impl.client;
 import de.javagl.obj.*;
 import dev.monarkhes.myron_neepmeat.impl.Namespaces;
 import dev.monarkhes.myron_neepmeat.impl.client.model.MyronMaterial;
+import dev.monarkhes.myron_neepmeat.impl.client.model.MyronModelProvider;
 import dev.monarkhes.myron_neepmeat.impl.client.obj.AbstractObjLoader;
 import dev.monarkhes.myron_neepmeat.impl.client.obj.MaterialReader;
 import dev.monarkhes.myron_neepmeat.impl.client.obj.ObjLoader;
@@ -60,45 +61,8 @@ public class Myron implements ClientModInitializer {
         // For testing
 //        Namespaces.register("minecraft");
 
-//        ModelLoadingRegistry.INSTANCE.registerResourceProvider(ObjLoader::new);
         ModelLoadingPlugin.register(ObjLoader.INSTANCE);
-        ModelLoadingRegistry.INSTANCE.registerVariantProvider(ObjLoader::new);
-        ModelLoadingRegistry.INSTANCE.registerModelProvider((manager, out) -> {
-            Collection<Identifier> ids = new HashSet<>();
-
-            Collection<Identifier> candidates = new ArrayList<>();
-            candidates.addAll(manager.findResources("models/block", path -> true).keySet());
-            candidates.addAll(manager.findResources("models/item", path -> true).keySet());
-            candidates.addAll(manager.findResources("models/misc", path -> true).keySet());
-
-            for (Identifier id : candidates) {
-                if (!Namespaces.check(id.getNamespace()))
-                    continue;
-
-                if (id.getPath().endsWith(".obj")) {
-                    ids.add(id);
-                    ids.add(new Identifier(id.getNamespace(), id.getPath().substring(0, id.getPath().indexOf(".obj"))));
-                } else {
-                    Identifier test = new Identifier(id.getNamespace(), id.getPath() + ".obj");
-
-                    if (manager.getResource(test).isPresent()) {
-                        ids.add(id);
-                    }
-                }
-            }
-
-            ids.forEach(
-                id -> {
-                    String path = id.getPath();
-
-                    if (path.startsWith("models/")) {
-                        out.accept(new Identifier(id.getNamespace(), path.substring("models/".length())));
-                    }
-
-                    out.accept(id);
-                }
-            );
-        });
+        ModelLoadingPlugin.register(MyronModelProvider.INSTANCE);
 
         LOGGER.info("Myron Initialized!");
     }

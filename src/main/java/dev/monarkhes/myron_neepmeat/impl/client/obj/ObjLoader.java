@@ -5,15 +5,12 @@ import dev.monarkhes.myron_neepmeat.impl.Namespaces;
 import dev.monarkhes.myron_neepmeat.impl.client.Myron;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.model.ModelProviderContext;
-import net.fabricmc.fabric.api.client.model.ModelVariantProvider;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.model.UnbakedModel;
 import net.minecraft.client.render.model.json.ModelTransformation;
 import net.minecraft.client.render.model.json.Transformation;
 import net.minecraft.client.util.ModelIdentifier;
-import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 import org.jetbrains.annotations.Nullable;
@@ -21,23 +18,20 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.Objects;
 
-public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, ModelVariantProvider
+public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin
 {
-    public static final ObjLoader INSTANCE = new ObjLoader(MinecraftClient.getInstance().getResourceManager());
+    public static final ObjLoader INSTANCE = new ObjLoader();
 
     private static final Gson GSON = (new GsonBuilder())
             .registerTypeAdapter(ModelTransformation.class, new ModelTransformDeserializer())
             .registerTypeAdapter(Transformation.class, new TransformDeserializer())
             .create();
 
-    private final ResourceManager resourceManager;
-
-    public ObjLoader(ResourceManager resourceManager)
+    private ObjLoader()
     {
-        this.resourceManager = resourceManager;
     }
-
 
     public @Nullable UnbakedModel loadModelResource(Identifier identifier, ResourceGetter resourceManager)
     {
@@ -47,10 +41,9 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
         return loadModel(resourceManager, identifier, ModelTransformation.NONE, true);
     }
 
-    @Override
-    public @Nullable UnbakedModel loadModelVariant(ModelIdentifier modelIdentifier, ModelProviderContext context)
+    public @Nullable UnbakedModel loadModelVariant(Identifier identifier, ResourceGetter resourceManager)
     {
-        if (!Namespaces.check(modelIdentifier.getNamespace()))
+        if (!(identifier instanceof ModelIdentifier modelIdentifier) || !Namespaces.check(modelIdentifier.getNamespace()))
             return null;
 
         Identifier resource = new Identifier(
@@ -62,7 +55,7 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
             return null;
         }
 
-        try (Reader reader = new InputStreamReader(this.resourceManager.getResource(resource).get().getInputStream()))
+        try (Reader reader = new InputStreamReader(resourceManager.getResource(resource).get().getInputStream()))
         {
             JsonObject rawModel = JsonHelper.deserialize(reader);
 
@@ -73,7 +66,7 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
             }
 
             Identifier modelPath = new Identifier(model.getAsString());
-            ModelTransformation transformation = this.getTransformation(rawModel);
+            ModelTransformation transformation = this.getTransformation(rawModel, resourceManager);
 
             boolean isSideLit = true;
 
@@ -82,7 +75,7 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
                 isSideLit = JsonHelper.getString(rawModel, "gui_light").equals("side");
             }
 
-            return this.loadModel(resourceManager::getResource, modelPath, transformation, isSideLit);
+            return this.loadModel(resourceManager, modelPath, transformation, isSideLit);
         }
         catch (IOException e)
         {
@@ -91,7 +84,7 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
         }
     }
 
-    private ModelTransformation getTransformation(JsonObject rawModel) throws IOException
+    private ModelTransformation getTransformation(JsonObject rawModel, ResourceGetter resourceManager) throws IOException
     {
         if (rawModel.has("display"))
         {
@@ -102,7 +95,7 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
         {
             Identifier parent = new Identifier(JsonHelper.getString(rawModel, "parent"));
             parent = new Identifier(parent.getNamespace(), "models/" + parent.getPath() + ".json");
-            return this.getTransformation(parent);
+            return this.getTransformation(parent, resourceManager);
         }
         else
         {
@@ -110,12 +103,12 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
         }
     }
 
-    private ModelTransformation getTransformation(Identifier model) throws IOException
+    private ModelTransformation getTransformation(Identifier model, ResourceGetter resourceManager) throws IOException
     {
-        if (this.resourceManager.getResource(model).isPresent())
+        if (resourceManager.getResource(model).isPresent())
         {
-            Reader reader = new InputStreamReader(this.resourceManager.getResource(model).get().getInputStream());
-            return getTransformation(JsonHelper.deserialize(reader));
+            Reader reader = new InputStreamReader(resourceManager.getResource(model).get().getInputStream());
+            return getTransformation(JsonHelper.deserialize(reader), resourceManager);
         }
         else
         {
@@ -131,10 +124,12 @@ public class ObjLoader extends AbstractObjLoader implements ModelLoadingPlugin, 
             return loadModelResource(context.id(), MinecraftClient.getInstance().getResourceManager()::getResource);
         });
 
-//        loaderCtx.modifyModelBeforeBake().register((unbakedModel, context) ->
-//        {
-//            return
-//        });
+        loaderCtx.modifyModelBeforeBake().register((unbakedModel, context) ->
+        {
+            return Objects.requireNonNullElse(
+                    loadModelVariant(context.id(), MinecraftClient.getInstance().getResourceManager()::getResource),
+                    unbakedModel);
+        });
     }
 
     @Environment(EnvType.CLIENT)
