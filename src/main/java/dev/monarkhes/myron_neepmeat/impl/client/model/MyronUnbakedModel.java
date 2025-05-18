@@ -44,21 +44,26 @@ public class MyronUnbakedModel implements UnbakedModel {
 
     }
 
-    @Nullable
     @Override
-    public BakedModel bake(Baker baker, Function<SpriteIdentifier, Sprite> textureGetter, ModelBakeSettings rotationContainer, Identifier modelId) {
+    public @Nullable BakedModel bake(Baker baker, Function<SpriteIdentifier, Sprite> textureGetter, ModelBakeSettings rotationContainer)
+    {
         Mesh mesh;
 
         if (obj == null)
             // Try to load the obj (previous behavior)
-            mesh = Myron.load(modelId, textureGetter, rotationContainer, isBlock);
+//            mesh = Myron.load(modelId, textureGetter, rotationContainer, isBlock);
+            mesh = c -> {};
         else
             // We already loaded the obj earlier in AbstractObjLoader. Don't use the external utility to re-load the obj
             // (it works only on absolute identifiers, not ModelIdentifiers like 'myron:torus#inventory')
             mesh = Myron.build(obj, materials, textureGetter, rotationContainer, isBlock);
 
-        Myron.MESHES.put(modelId, mesh);
-
         return new MyronBakedModel(mesh, this.transform, textureGetter.apply(this.sprite), this.isSideLit);
     }
+
+//    @Nullable
+//    @Override
+//    public BakedModel bake(Baker baker, Function<SpriteIdentifier, Sprite> textureGetter, ModelBakeSettings rotationContainer, Identifier modelId)
+//    {
+//    }
 }

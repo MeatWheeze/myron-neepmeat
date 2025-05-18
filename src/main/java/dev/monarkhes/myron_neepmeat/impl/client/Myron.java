@@ -53,7 +53,6 @@ public class Myron implements ClientModInitializer {
 
     public static final String MOD_ID = "myron-neepmeat";
     public static final Logger LOGGER = LogManager.getLogger("Myron-NEEPMeat");
-    public static final Map<Identifier, Mesh> MESHES = new HashMap<>();
 
     @Override
     public void onInitializeClient() {
