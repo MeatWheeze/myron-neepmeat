@@ -1,5 +1,7 @@
 ## Note from MeatWheeze
 
+I'm not sure whether the 1.21 branch will build or work.
+
 This fork contains some jank to only allow loading models from certain namespaces so that it doesn't interfere with other OBJ loading systems.
 
 ## Note from BlueVista
